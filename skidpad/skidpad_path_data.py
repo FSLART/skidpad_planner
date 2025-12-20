@@ -3,12 +3,14 @@ from scipy.interpolate import splprep, splev
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
+from matplotlib.animation import PillowWriter
+
 # -------------------------------------------------------------------
 # SETTINGS
 use_spline = False  # Set to False to skip interpolation
-rotate_cones = 10   # Angle of rotation
-random_point = np.array([-20, 20])  # or None
-animation_speed = 15 # lower number = faster animation speed
+rotate_cones = 0   # Angle of rotation
+random_point = np.array([-20, -20]) # or None
+animation_speed = 5 # lower number = faster animation speed
 
 # -------------------------------------------------------------------
 # PRESET PATH
@@ -44,7 +46,7 @@ middle_line = mid34 - mid12
 rotation = np.arctan2(middle_line[1], middle_line[0])  # radians
 
 ZERO_POS = [cones_center_pos[0], cones_center_pos[1], rotation]
-step: int = 20
+step: int = 10
 BASE_SKIDPAD_STEP = BASE_SKIDPAD_PATH[::step]
 
 theta = ZERO_POS[2]
@@ -105,7 +107,7 @@ def closest_index_to(point, path):
 current_path = rotated_skidpad[::step]
 if random_point is not None:
     idx = closest_index_to(random_point, current_path)
-    connector_count = 10  # number of connecting points
+    connector_count = 20  # number of connecting points
     connector = np.linspace(random_point, current_path[idx], connector_count)
 
     # Inject connector before the real path
@@ -152,7 +154,7 @@ if random_point is not None:
     ax.scatter(random_point[0], random_point[1], color="red", s=100, label="Start Point")
 
 (line,) = ax.plot([], [], ".", color="blue", label="Skidpad")
-heading_line, = ax.plot([], [], color="black", linewidth=1, label="Heading")
+heading_line, = ax.plot([], [], color="black", linewidth=1, label="Vector direction")
 ax.legend()
 
 def update(frame):
@@ -176,4 +178,18 @@ def update(frame):
 
 ani = FuncAnimation(fig, update, frames=len(current_path), interval=animation_speed, blit=True, repeat=True)
 
+# ——————————————————————————————————————————————
+# SAVE AS A GIF
+# ani = FuncAnimation(
+#     fig,
+#     update,
+#     frames=len(current_path),
+#     interval=animation_speed,
+#     blit=True,
+#     repeat=True
+# )
+# ani.save("skidpad_animation_random_point.gif", writer=PillowWriter(fps=30))
+
+# ——————————————————————————————————————————————
+# SHOW PLOT, 
 plt.show()
