@@ -180,6 +180,7 @@ ani = FuncAnimation(fig, update, frames=len(current_path), interval=animation_sp
 
 # ——————————————————————————————————————————————
 # SAVE AS A GIF
+# lEAVE THIS COMMENTED UNLESS YOU WANT TO SAVE PLOT ANIMATION
 # ani = FuncAnimation(
 #     fig,
 #     update,
