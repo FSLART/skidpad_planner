@@ -5,6 +5,7 @@
 #include <sstream>
 
 // Hardcoded skidpad path
+// Reads skidpad-path_raw-values.csv returns (x,y) line by line
 int main() {
     std::string filename = "skidpad-path_raw-values.csv";
     std::ifstream file(filename);
