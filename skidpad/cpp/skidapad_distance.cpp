@@ -5,12 +5,18 @@
 #include <sstream>
 #include <cmath>
 
-// Struct to hold path point
+// Struct to hold path point (vehicle -> heading,x,y)
 struct PathPoint {
+    double heading;
     double x;
     double y;
-    double heading;
 };
+
+// // Struct to hold path point (cone -> x,y,color)
+// struct ConePoint {
+//     double x;
+//     double y;
+// };
 
 // Euclidean distance (x,y only)
 double distance(double x1, double y1, double x2, double y2) {
@@ -46,7 +52,7 @@ std::vector<PathPoint> getPointsAhead(
 }
 
 int main() {
-    std::ifstream file("simao_skidpad_run.csv");
+    std::ifstream file("car_pos.csv");
     if (!file.is_open()) {
         std::cerr << "Failed to open CSV file\n";
         return 1;
