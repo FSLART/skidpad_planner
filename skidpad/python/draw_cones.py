@@ -1,6 +1,7 @@
 import csv
 import numpy as np
 from pathlib import Path
+import matplotlib.pyplot as plt
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 CONES_PATH = SCRIPT_DIR.parent / "cpp" / "cones.csv"
@@ -11,12 +12,17 @@ def load_cones_numpy(filename):
     with open(filename, newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            pt = [float(row["x"]), float(row["y"])]
-            if row["color"] == "blue":
+            x = float(row["x"])
+            y = float(row["y"])
+            color = row["color"].strip()
+
+            pt = [x, y]
+
+            if color == "blue":
                 blue.append(pt)
-            elif row["color"] == "yellow":
+            elif color == "yellow":
                 yellow.append(pt)
-            elif row["color"] == "orange":
+            elif color.startswith("orange"):
                 orange.append(pt)
 
     return {
@@ -25,23 +31,29 @@ def load_cones_numpy(filename):
         "orange": np.array(orange)
     }
 
+# ---- Load cones ----
 cones = load_cones_numpy(CONES_PATH)
+
 print("Blue cones shape:", cones["blue"].shape)
+print("Yellow cones shape:", cones["yellow"].shape)
+print("Orange cones shape:", cones["orange"].shape)
 
-import matplotlib.pyplot as plt
-
+# ---- Plot ----
 blue = cones["blue"]
 yellow = cones["yellow"]
 orange = cones["orange"]
 
-plt.figure(figsize=(6,6))
+plt.figure(figsize=(6, 6))
 
 if blue.size:
-    plt.scatter(blue[:,0], blue[:,1], c="blue", s=10, label="Blue")
+    plt.scatter(blue[:, 0], blue[:, 1], c="blue", s=8, label="Blue cones")
 if yellow.size:
-    plt.scatter(yellow[:,0], yellow[:,1], c="gold", s=10, label="Yellow")
+    plt.scatter(yellow[:, 0], yellow[:, 1], c="gold", s=8, label="Yellow cones")
 if orange.size:
-    plt.scatter(orange[:,0], orange[:,1], c="orange", s=10, label="Orange")
+    plt.scatter(orange[:, 0], orange[:, 1], c="orange", s=40, marker="s", label="Orange cones")
+
+# Circle centers (for sanity check)
+plt.scatter([-10, 10], [0, 0], c="red", s=80, marker="x", label="Circle centers")
 
 plt.axis("equal")
 plt.grid(True)
