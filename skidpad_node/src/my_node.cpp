@@ -1,5 +1,4 @@
 #include "../include/skidpadNode/my_node.hpp"
-
 using std::placeholders::_1;
 
 Eigen::MatrixXd plan_path(
@@ -49,11 +48,12 @@ auto localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg, std::pair<int,
                 yellow_index= i;
             }
         }else{
-            //verificar se é necessario ou n.
+            //verify if its needed
         }
     }
 
-           double cones_angle = std::atan2(cones_s[yellow_index].position.y-cones_s[blue_index].position.y,cones_s[yellow_index].position.x-cones_s[blue_index].position.x);    
+    double cones_angle = std::atan2(cones_s[yellow_index].position.y-cones_s[blue_index].position.y,cones_s[yellow_index].position.x-cones_s[blue_index].position.x); 
+    
 }
 
 void skidpad_node::coneArrayCallback(const lart_msgs::msg::ConeArray::SharedPtr msg){
@@ -66,15 +66,15 @@ void skidpad_node::coneArrayCallback(const lart_msgs::msg::ConeArray::SharedPtr 
 //aqui preciso de usar o Z na posicao?
 void skidpad_node::positionCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg){
     //passo isto para variavel global?
-    std::pair<int,int> car_pos = {msg->pose.position.x, msg->pose.position.y};
+    this->car_pos = {msg->pose.position.x, msg->pose.position.y};
+    tf2::Quaternion q(
+        msg->pose.orientation.x,
+        msg->pose.orientation.y,
+        msg->pose.orientation.z,
+        msg->pose.orientation.w
+    );
+
     
-    auto car_rotation_x  = msg->pose.orientation.x;
-    auto car_rotation_y  = msg->pose.orientation.y;
-    auto car_rotation_z  = msg->pose.orientation.z;
-    auto car_rotation_w  = msg->pose.orientation.w;
-
-
-
 
 }
 
