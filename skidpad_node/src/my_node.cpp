@@ -16,10 +16,11 @@ skidpad_node::skidpad_node() : Node("skidpadNode"){
 
     this->cone_array_subscriber = this->create_subscription<lart_msgs::msg::ConeArray>("/mapping/cones", 10, std::bind(&skidpad_node::coneArrayCallback, this, _1));
     this->position_subscriber = this->create_subscription<geometry_msgs::msg::PoseStamped>("/slam/pose", 10, std::bind(&skidpad_node::positionCallback, this, _1));
+
 };
 
-
-auto localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg, std::pair<int,int> car_pos){
+//rever
+double skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg){
     auto cones_s = msg->cones;  
     int blue_index, yellow_index;
     //if it returns -1 something went wrong
@@ -30,7 +31,7 @@ auto localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg, std::pair<int,
     auto distance  = [](double cone_x, double cone_y, double car_x,double car_y){
         return (cone_x - car_x)*(cone_x - car_x)+(cone_y - car_y)*(cone_y - car_y);
     };
-
+    
     //return the index off the nearest cones
     for(int i = 0; i<cones_s.size();i++)
     {
@@ -52,8 +53,15 @@ auto localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg, std::pair<int,
         }
     }
 
-    double cones_angle = std::atan2(cones_s[yellow_index].position.y-cones_s[blue_index].position.y,cones_s[yellow_index].position.x-cones_s[blue_index].position.x); 
+    std::pair<double,double> cones_mid_point = {(cones_s[blue_index].position.x - cones_s[yellow_index].position.x)/2,
+        (cones_s[blue_index].position.y - cones_s[yellow_index].position.y)/2};
+        
+    double map_angle = std::atan2(
+        cones_mid_point.second - car_pos.second,
+         cones_mid_point.first - car_pos.first);
     
+    double rotation = map_angle - this->car_angle;
+    return rotation;
 }
 
 void skidpad_node::coneArrayCallback(const lart_msgs::msg::ConeArray::SharedPtr msg){
@@ -74,8 +82,10 @@ void skidpad_node::positionCallback(const geometry_msgs::msg::PoseStamped::Share
         msg->pose.orientation.w
     );
 
-    
-
+    tf2::Matrix3x3 m(q);
+    double roll, pitch ,yaw;
+    m.getRPY(roll,pitch,yaw);
+    this->car_angle = yaw;
 }
 
 int main(int argc, char * argv[]){

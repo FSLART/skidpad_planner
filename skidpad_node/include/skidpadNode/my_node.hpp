@@ -4,6 +4,7 @@
 #include <nav_msgs/msg/path.hpp> //publisher para o vissualizer
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
 
 #include "lart_msgs/msg/path_spline.hpp"
 #include "lart_msgs/msg/cone.hpp"
@@ -16,6 +17,7 @@ class skidpad_node : public rclcpp::Node
 
     private:
 
+        double car_angle;
         std::pair<bool,bool> car_pos;
 
         rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_vis_pub;
@@ -28,7 +30,7 @@ class skidpad_node : public rclcpp::Node
         void positionCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
         void coneArrayCallback(const lart_msgs::msg::ConeArray::SharedPtr msg);
 
-        auto localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg);
+        double localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg);
 
 
 };
