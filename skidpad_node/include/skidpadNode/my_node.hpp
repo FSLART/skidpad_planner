@@ -1,5 +1,5 @@
 #include <Eigen/Dense>
-#include <vector>
+//#include <vector>
 #include <rclcpp/rclcpp.hpp>
 #include <nav_msgs/msg/path.hpp> //publisher para o vissualizer
 #include <geometry_msgs/msg/pose_stamped.hpp>
@@ -17,7 +17,7 @@ class skidpad_node : public rclcpp::Node
         rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_vis_pub;
         rclcpp::Publisher<lart_msgs::msg::PathSpline>::SharedPtr path_control_pub; 
 
-
+        
         rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr position_subscriber;
         rclcpp::Subscription<lart_msgs::msg::ConeArray>::SharedPtr cone_array_subscriber;
         
