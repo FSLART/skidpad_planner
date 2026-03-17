@@ -1,6 +1,8 @@
 #include "../include/skidpadNode/my_node.hpp"
 using std::placeholders::_1;
 
+#define DISTANCE 20
+
 Eigen::MatrixXd plan_path(
     const Eigen::MatrixXd& cones,
     const Eigen::Vector2d& car_pos)
@@ -19,8 +21,8 @@ skidpad_node::skidpad_node() : Node("skidpadNode"){
 
 };
 
-//rever
-double skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg){
+//rever 
+void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg){
     auto cones_s = msg->cones;  
     int blue_index, yellow_index;
     //if it returns -1 something went wrong
@@ -59,15 +61,38 @@ double skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg
     double map_angle = std::atan2(
         cones_mid_point.second - car_pos.second,
          cones_mid_point.first - car_pos.first);
-    
+    //rotation to be aplied in the map
     double rotation = map_angle - this->car_angle;
-    return rotation;
+    
+    double cos = std::cos(rotation);
+    double sin = std::sin(rotation);
+
+    for(const auto& cone : cones_s){
+        auto new_cone = cone;
+
+        double dx = cone.position.x;
+        double dy = cone.position.y;
+
+        double rotated_x = (dx*cos) - (dy * sin);
+        double rotated_y = (dx * sin) - (dy * cos);
+
+        double final_x = rotated_x + car_pos.first;
+        double final_y = rotated_y + car_pos.second;
+    
+        new_cone.position.x = final_x;
+        new_cone.position.y = final_y;
+
+        rotated_cones.push_back(new_cone);
+    }
 }
 
 void skidpad_node::coneArrayCallback(const lart_msgs::msg::ConeArray::SharedPtr msg){
     int cone_count = msg->cones.size();
     RCLCPP_INFO(this->get_logger(),"Recive %d cones",cone_count);
-    
+    if(!(car_localized)){
+        localize_car(msg);
+        car_localized = !car_localized;
+    }
     
 }
 
