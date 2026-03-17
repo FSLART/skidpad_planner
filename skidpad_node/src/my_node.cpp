@@ -66,7 +66,8 @@ void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg){
     
     double cos = std::cos(rotation);
     double sin = std::sin(rotation);
-
+    
+    auto path_message = nav_msgs::msg::Path();
     for(const auto& cone : cones_s){
         auto new_cone = cone;
 
@@ -83,7 +84,19 @@ void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg){
         new_cone.position.y = final_y;
 
         rotated_cones.push_back(new_cone);
+
+        //REVER envio a messagem por cada cone que foi rotaziodado ou envio no final apenas
+        geometry_msgs::msg::PoseStamped pose_stamped;
+        pose_stamped.header = path_message.header;
+        pose_stamped.pose.position.x = final_x;
+        pose_stamped.pose.position.y = final_y;
+        pose_stamped.pose.position.z = 0.0;
+
+        pose_stamped.pose.orientation.w = 1.0;
+
+        path_message.poses.push_back(pose_stamped);
     }
+    path_vis_pub->publish(path_message);
 }
 
 void skidpad_node::coneArrayCallback(const lart_msgs::msg::ConeArray::SharedPtr msg){
@@ -91,9 +104,13 @@ void skidpad_node::coneArrayCallback(const lart_msgs::msg::ConeArray::SharedPtr 
     RCLCPP_INFO(this->get_logger(),"Recive %d cones",cone_count);
     if(!(car_localized)){
         localize_car(msg);
+        
+
+
+        
+        
         car_localized = !car_localized;
     }
-    
 }
 
 //aqui preciso de usar o Z na posicao?
