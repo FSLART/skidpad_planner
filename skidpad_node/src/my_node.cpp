@@ -21,7 +21,7 @@ skidpad_node::skidpad_node() : Node("skidpadNode"){
 
 };
 
-//rever 
+//pontos equidistantes na path spline 
 void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg){
     auto cones_s = msg->cones;  
     int blue_index, yellow_index;
@@ -85,18 +85,47 @@ void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg){
 
         rotated_cones.push_back(new_cone);
 
-        //REVER envio a messagem por cada cone que foi rotaziodado ou envio no final apenas
-        geometry_msgs::msg::PoseStamped pose_stamped;
-        pose_stamped.header = path_message.header;
-        pose_stamped.pose.position.x = final_x;
-        pose_stamped.pose.position.y = final_y;
-        pose_stamped.pose.position.z = 0.0;
+        // //REVER envio a messagem por cada cone que foi rotaziodado ou envio no final apenas
+        // geometry_msgs::msg::PoseStamped pose_stamped;
+        // pose_stamped.header = path_message.header;
+        // pose_stamped.pose.position.x = final_x;
+        // pose_stamped.pose.position.y = final_y;
+        // pose_stamped.pose.position.z = 0.0;
 
-        pose_stamped.pose.orientation.w = 1.0;
+        // pose_stamped.pose.orientation.w = 1.0;
 
-        path_message.poses.push_back(pose_stamped);
+        // path_message.poses.push_back(pose_stamped);
     }
-    path_vis_pub->publish(path_message);
+    // path_vis_pub->publish(path_message);
+}
+
+
+/*
+    Esta função vai enviar os pontos todos de uma vez ou apenas quando pedido ? - perguntar ao andre 
+    Se for apenas quando pedido usar o struct ou  std::pair 
+    Caso n usar o fora do scope para guardar o ponto 
+*/
+void skidpad_node::dar_um_nome(){
+    double target_distance = 0.5;
+    
+    double distance  = [](double cone_x, double cone_y, double cone_x1,double cone_y1){
+        return std::sqrt((cone_x - cone_x1)*(cone_x - cone_x1)+(cone_y - cone_y1)*(cone_y - cone_y1));
+    };
+
+    std::ifstream PATH_POINTS("skidpad_path.csv");
+    if(!PATH_POINTS.is_open()){
+        std::cerr << "ERROR: Cannot open file" << std::endl;
+        return;
+    }
+
+    std::string line;
+    std::pair<double, double> last_point;
+
+    while (std::getline(PATH_POINTS, line))
+    {
+        std::stringstream ss(line);
+    }
+    
 }
 
 void skidpad_node::coneArrayCallback(const lart_msgs::msg::ConeArray::SharedPtr msg){
@@ -104,11 +133,6 @@ void skidpad_node::coneArrayCallback(const lart_msgs::msg::ConeArray::SharedPtr 
     RCLCPP_INFO(this->get_logger(),"Recive %d cones",cone_count);
     if(!(car_localized)){
         localize_car(msg);
-        
-
-
-        
-        
         car_localized = !car_localized;
     }
 }
@@ -123,7 +147,6 @@ void skidpad_node::positionCallback(const geometry_msgs::msg::PoseStamped::Share
         msg->pose.orientation.z,
         msg->pose.orientation.w
     );
-
     tf2::Matrix3x3 m(q);
     double roll, pitch ,yaw;
     m.getRPY(roll,pitch,yaw);
