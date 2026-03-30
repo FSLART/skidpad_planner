@@ -107,8 +107,12 @@ void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg){
 */
 void skidpad_node::dar_um_nome(){
     double target_distance = 0.5;
-    
-    double distance  = [](double cone_x, double cone_y, double cone_x1,double cone_y1){
+
+
+    std::pair<double, double> current_point;
+    std::pair<double, double> last_sent_point  = {0.0, 0.0};
+
+    auto distance  = [](double cone_x, double cone_y, double cone_x1,double cone_y1){
         return std::sqrt((cone_x - cone_x1)*(cone_x - cone_x1)+(cone_y - cone_y1)*(cone_y - cone_y1));
     };
 
@@ -119,11 +123,37 @@ void skidpad_node::dar_um_nome(){
     }
 
     std::string line;
-    std::pair<double, double> last_point;
 
     while (std::getline(PATH_POINTS, line))
     {
         std::stringstream ss(line);
+        std::string x_str, y_str;
+
+        if(std::getline(ss,x_str,',') && std::getline(ss,y_str))
+        {
+            try
+            {
+                last_point.first = std::stod(x_str);
+                last_point.second = std::stod(y_str);
+           
+                double dist = distance(current_point.first, current_point.second, 
+                                       last_sent_point.first, last_sent_point.second);
+
+                if(dist >= target_distance){
+                    //Falta enviar a msg
+
+
+
+                    last_sent_point = current_point;
+                }
+            }
+            catch(const std::invalid_argument& e)
+            {
+                std::cerr <<"ERROR: "<< e.what() << '\n';
+            }
+            
+        }
+        
     }
     
 }
