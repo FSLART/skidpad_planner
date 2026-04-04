@@ -109,7 +109,7 @@ void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg){
     Se for apenas quando pedido usar o struct ou  std::pair 
     Caso n usar o fora do scope para guardar o ponto 
 */
-void skidpad_node::dar_um_nome(){
+void skidpad_node::points_sender(){
     double target_distance = 0.5;
 
     visualization_msgs::msg::MarkerArray Marker_array;

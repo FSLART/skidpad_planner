@@ -34,6 +34,6 @@ class skidpad_node : public rclcpp::Node
         
         void positionCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
         void coneArrayCallback(const lart_msgs::msg::ConeArray::SharedPtr msg);
-        void dar_um_nome();
+        void points_sender();
         void localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg);
 };
