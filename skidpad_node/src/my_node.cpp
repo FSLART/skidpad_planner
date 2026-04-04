@@ -1,8 +1,11 @@
 #include "../include/skidpadNode/my_node.hpp"
 using std::placeholders::_1;
 
-#define DISTANCE 20
-
+//#define DISTANCE 20
+/*
+Nao esquecer de fazer as perguntas que tao nos comments !!!!!
+e apagar os mesmos
+*/
 Eigen::MatrixXd plan_path(
     const Eigen::MatrixXd& cones,
     const Eigen::Vector2d& car_pos)
@@ -15,6 +18,7 @@ skidpad_node::skidpad_node() : Node("skidpadNode"){
     
     this->path_vis_pub= this->create_publisher<nav_msgs::msg::Path>("/slam/pose",10);
     this->path_control_pub = this->create_publisher<lart_msgs::msg::PathSpline>("/planning/path",10);
+    this->visualization_pub = this->create_publisher<visualization_msgs::msg::MarkerArray>("",10); // METER AQUI PARA ONDE MANDAR PERGUNTAR!
 
     this->cone_array_subscriber = this->create_subscription<lart_msgs::msg::ConeArray>("/mapping/cones", 10, std::bind(&skidpad_node::coneArrayCallback, this, _1));
     this->position_subscriber = this->create_subscription<geometry_msgs::msg::PoseStamped>("/slam/pose", 10, std::bind(&skidpad_node::positionCallback, this, _1));
@@ -108,9 +112,11 @@ void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg){
 void skidpad_node::dar_um_nome(){
     double target_distance = 0.5;
 
+    visualization_msgs::msg::MarkerArray Marker_array;
 
     std::pair<double, double> current_point;
     std::pair<double, double> last_sent_point  = {0.0, 0.0};
+
 
     auto distance  = [](double cone_x, double cone_y, double cone_x1,double cone_y1){
         return std::sqrt((cone_x - cone_x1)*(cone_x - cone_x1)+(cone_y - cone_y1)*(cone_y - cone_y1));
@@ -133,15 +139,19 @@ void skidpad_node::dar_um_nome(){
         {
             try
             {
-                last_point.first = std::stod(x_str);
-                last_point.second = std::stod(y_str);
+                current_point.first = std::stod(x_str);
+                current_point.second = std::stod(y_str);
            
                 double dist = distance(current_point.first, current_point.second, 
                                        last_sent_point.first, last_sent_point.second);
 
                 if(dist >= target_distance){
-                    //Falta enviar a msg
-
+                    //verificar aqui o que enviar no marker para n enviar nada a mais nem a menos
+                    visualization_msgs::msg::Marker marker;
+                    marker.pose.position.x = current_point.first;
+                    marker.pose.position.y = current_point.second;
+                    
+                    Marker_array.markers.push_back(marker);
 
 
                     last_sent_point = current_point;
@@ -156,6 +166,7 @@ void skidpad_node::dar_um_nome(){
         
     }
     
+    visualization_pub->publish(Marker_array);
 }
 
 void skidpad_node::coneArrayCallback(const lart_msgs::msg::ConeArray::SharedPtr msg){
