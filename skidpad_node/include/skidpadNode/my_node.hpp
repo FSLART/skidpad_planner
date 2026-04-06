@@ -20,8 +20,11 @@ class skidpad_node : public rclcpp::Node
      skidpad_node();
 
     private:
+        const double distance = 20;
         bool car_localized = false;
         double car_angle;
+        size_t path_index = 0;
+
         std::pair<bool,bool> car_pos;
         std::vector<lart_msgs::msg::Cone> rotated_cones;
     
@@ -34,6 +37,7 @@ class skidpad_node : public rclcpp::Node
         
         void positionCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
         void coneArrayCallback(const lart_msgs::msg::ConeArray::SharedPtr msg);
+        
         void points_sender();
         void localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg);
 };

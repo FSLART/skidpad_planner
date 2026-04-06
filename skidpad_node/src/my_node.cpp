@@ -1,7 +1,6 @@
 #include "../include/skidpadNode/my_node.hpp"
 using std::placeholders::_1;
 
-//#define DISTANCE 20
 /*
 Nao esquecer de fazer as perguntas que tao nos comments !!!!!
 e apagar os mesmos
@@ -54,8 +53,6 @@ void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg){
                 dist_y = tmp_distance_yellow;
                 yellow_index= i;
             }
-        }else{
-            //verify if its needed
         }
     }
 
@@ -111,12 +108,13 @@ void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg){
 */
 void skidpad_node::points_sender(){
     double target_distance = 0.5;
+    double added_distance = 0.0;
 
     visualization_msgs::msg::MarkerArray Marker_array;
-
+    visualization_msgs::msg::Marker marker;
+    
     std::pair<double, double> current_point;
     std::pair<double, double> last_sent_point  = {0.0, 0.0};
-
 
     auto distance  = [](double cone_x, double cone_y, double cone_x1,double cone_y1){
         return std::sqrt((cone_x - cone_x1)*(cone_x - cone_x1)+(cone_y - cone_y1)*(cone_y - cone_y1));
@@ -129,9 +127,15 @@ void skidpad_node::points_sender(){
     }
 
     std::string line;
-
+    size_t current_line_in_file = 0;
     while (std::getline(PATH_POINTS, line))
     {
+        //Jump to the last line
+        if(current_line_in_file < path_index){
+            current_line_in_file++;
+            continue;
+        }
+
         std::stringstream ss(line);
         std::string x_str, y_str;
 
@@ -147,13 +151,11 @@ void skidpad_node::points_sender(){
 
                 if(dist >= target_distance){
                     //verificar aqui o que enviar no marker para n enviar nada a mais nem a menos
-                    visualization_msgs::msg::Marker marker;
+                    added_distance += target_distance;
+
                     marker.pose.position.x = current_point.first;
                     marker.pose.position.y = current_point.second;
-                    
                     Marker_array.markers.push_back(marker);
-
-
                     last_sent_point = current_point;
                 }
             }
@@ -161,12 +163,14 @@ void skidpad_node::points_sender(){
             {
                 std::cerr <<"ERROR: "<< e.what() << '\n';
             }
-            
         }
-        
+        if(added_distance > 20)
+            break;
+        path_index++;
     }
-    
-    visualization_pub->publish(Marker_array);
+
+    if(!Marker_array.markers.empty())
+        visualization_pub->publish(Marker_array);
 }
 
 void skidpad_node::coneArrayCallback(const lart_msgs::msg::ConeArray::SharedPtr msg){
@@ -192,6 +196,8 @@ void skidpad_node::positionCallback(const geometry_msgs::msg::PoseStamped::Share
     double roll, pitch ,yaw;
     m.getRPY(roll,pitch,yaw);
     this->car_angle = yaw;
+    //verificar se é aqui que tenho de mandar os pontos todos ou n 
+    points_sender();
 }
 
 int main(int argc, char * argv[]){
