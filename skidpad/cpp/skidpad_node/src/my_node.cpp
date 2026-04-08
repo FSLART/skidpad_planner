@@ -21,9 +21,8 @@ skidpad_node::skidpad_node() : Node("skidpadNode"){
 
     this->cone_array_subscriber = this->create_subscription<lart_msgs::msg::ConeArray>("/mapping/cones", 10, std::bind(&skidpad_node::coneArrayCallback, this, _1));
     this->position_subscriber = this->create_subscription<geometry_msgs::msg::PoseStamped>("/slam/pose", 10, std::bind(&skidpad_node::positionCallback, this, _1));
-
+    
 };
-
 //pontos equidistantes na path spline 
 void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg){
     auto cones_s = msg->cones;  
@@ -120,10 +119,17 @@ void skidpad_node::points_sender(){
         return std::sqrt((cone_x - cone_x1)*(cone_x - cone_x1)+(cone_y - cone_y1)*(cone_y - cone_y1));
     };
 
-    std::ifstream PATH_POINTS("skidpad_path.csv");
+    //std::ifstream PATH_POINTS("skidpad_path.csv");
     if(!PATH_POINTS.is_open()){
-        std::cerr << "ERROR: Cannot open file" << std::endl;
-        return;
+        try
+        {
+            PATH_POINTS.open("skidpad_path.csv");
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+            std::cerr << "ERROR: Cannot open file" << std::endl;
+        }
     }
 
     std::string line;

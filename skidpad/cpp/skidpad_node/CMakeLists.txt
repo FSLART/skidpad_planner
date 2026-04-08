@@ -20,6 +20,7 @@ ament_target_dependencies(skidpad_exec
   rclcpp
   visualization_msgs
   std_msgs
+  lart_msgs
 )
 
 install(TARGETS

@@ -22,6 +22,7 @@ class skidpad_node : public rclcpp::Node
     private:
         const double distance = 20;
         bool car_localized = false;
+        std::ifstream PATH_POINTS;
         double car_angle;
         size_t path_index = 0;
 
