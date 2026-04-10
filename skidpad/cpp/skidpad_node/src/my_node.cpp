@@ -17,7 +17,6 @@ skidpad_node::skidpad_node() : Node("skidpadNode"){
     
     this->path_vis_pub= this->create_publisher<nav_msgs::msg::Path>("/slam/pose",10);
     this->path_control_pub = this->create_publisher<lart_msgs::msg::PathSpline>("/planning/path",10);
-    this->visualization_pub = this->create_publisher<visualization_msgs::msg::MarkerArray>("",10); // METER AQUI PARA ONDE MANDAR PERGUNTAR!
 
     this->cone_array_subscriber = this->create_subscription<lart_msgs::msg::ConeArray>("/mapping/cones", 10, std::bind(&skidpad_node::coneArrayCallback, this, _1));
     this->position_subscriber = this->create_subscription<geometry_msgs::msg::PoseStamped>("/slam/pose", 10, std::bind(&skidpad_node::positionCallback, this, _1));
@@ -100,18 +99,18 @@ void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg){
 }
 
 
-/*
-    Esta função vai enviar os pontos todos de uma vez ou apenas quando pedido ? - perguntar ao andre 
-    Se for apenas quando pedido usar o struct ou  std::pair 
-    Caso n usar o fora do scope para guardar o ponto 
-*/
 void skidpad_node::points_sender(){
     double target_distance = 0.5;
     double added_distance = 0.0;
 
-    visualization_msgs::msg::MarkerArray Marker_array;
-    visualization_msgs::msg::Marker marker;
-    
+    lart_msgs::msg::PathSpline pathSpline_msg;
+    pathSpline_msg.header.stamp = this->now();
+    pathSpline_msg.header.frame_id = "world";
+
+    nav_msgs::msg::Path path_rviz_msg;
+    path_rviz_msg.header.stamp = this->now();
+    path_rviz_msg.header.frame_id = "world";
+
     std::pair<double, double> current_point;
     std::pair<double, double> last_sent_point  = {0.0, 0.0};
 
@@ -119,7 +118,6 @@ void skidpad_node::points_sender(){
         return std::sqrt((cone_x - cone_x1)*(cone_x - cone_x1)+(cone_y - cone_y1)*(cone_y - cone_y1));
     };
 
-    //std::ifstream PATH_POINTS("skidpad_path.csv");
     if(!PATH_POINTS.is_open()){
         try
         {
@@ -131,7 +129,6 @@ void skidpad_node::points_sender(){
             std::cerr << "ERROR: Cannot open file" << std::endl;
         }
     }
-
     std::string line;
     size_t current_line_in_file = 0;
     while (std::getline(PATH_POINTS, line))
@@ -141,43 +138,57 @@ void skidpad_node::points_sender(){
             current_line_in_file++;
             continue;
         }
-
+        
         std::stringstream ss(line);
         std::string x_str, y_str;
-
+        
         if(std::getline(ss,x_str,',') && std::getline(ss,y_str))
         {
-            try
-            {
-                current_point.first = std::stod(x_str);
-                current_point.second = std::stod(y_str);
-           
-                double dist = distance(current_point.first, current_point.second, 
-                                       last_sent_point.first, last_sent_point.second);
+            current_point.first = std::stod(x_str);
+            current_point.second = std::stod(y_str);
+            double dist = distance(current_point.first, current_point.second, 
+            last_sent_point.first, last_sent_point.second);
+                if(dist >= target_distance){            
+                    geometry_msgs::msg::PoseStamped pose;
+                    pose.header.stamp = this->now();
+                    pose.header.frame_id = pathSpline_msg.header.frame_id;
+                    
+                    pose.pose.position.x = current_point.first;
+                    pose.pose.position.y = current_point.second;
 
-                if(dist >= target_distance){
-                    //verificar aqui o que enviar no marker para n enviar nada a mais nem a menos
+                    tf2::Quaternion quaternion;
+                    quaternion.setRPY(0.0, 0.0, car_angle);
+                    
+                    pose.pose.orientation.x = quaternion.x();
+                    pose.pose.orientation.y = quaternion.y();
+                    pose.pose.orientation.z = quaternion.z();
+                    pose.pose.orientation.w = quaternion.w();
+
+                    /*
+                        path_msg.curvature.append(point[3])
+                        path_msg.distance.append(point[0])
+                    */
+                    
+                    pathSpline_msg.poses.push_back(pose);
+                    path_rviz_msg.poses.push_back(pose);
+
                     added_distance += target_distance;
-
-                    marker.pose.position.x = current_point.first;
-                    marker.pose.position.y = current_point.second;
-                    Marker_array.markers.push_back(marker);
                     last_sent_point = current_point;
                 }
-            }
-            catch(const std::invalid_argument& e)
-            {
-                std::cerr <<"ERROR: "<< e.what() << '\n';
+
+                if(added_distance > 20){
+                    path_control_pub->publish(pathSpline_msg);
+                    path_vis_pub->publish(path_rviz_msg);
+                    break;
+                }
+                path_index++;
             }
         }
-        if(added_distance > 20)
-            break;
-        path_index++;
     }
 
-    if(!Marker_array.markers.empty())
-        visualization_pub->publish(Marker_array);
-}
+    // enviar a msg
+    // if(!Marker_array.markers.empty())
+    //     visualization_pub->publish(Marker_array);
 
 void skidpad_node::coneArrayCallback(const lart_msgs::msg::ConeArray::SharedPtr msg){
     int cone_count = msg->cones.size();
