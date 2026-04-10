@@ -12,13 +12,18 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(visualization_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(tf2 REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(lart_msgs REQUIRED)
 
 add_executable(skidpad_exec src/my_node.cpp)
 
 ament_target_dependencies(skidpad_exec
   rclcpp
   visualization_msgs
+  nav_msgs
+  tf2
   std_msgs
   lart_msgs
 )

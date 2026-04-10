@@ -1,16 +1,12 @@
 #include "../include/skidpadNode/my_node.hpp"
 using std::placeholders::_1;
 
-/*
-Nao esquecer de fazer as perguntas que tao nos comments !!!!!
-e apagar os mesmos
-*/
-Eigen::MatrixXd plan_path(
-    const Eigen::MatrixXd &cones,
-    const Eigen::Vector2d &car_pos)
-{
-    // logic here
-}
+// Eigen::MatrixXd plan_path(
+//     const Eigen::MatrixXd &cones,
+//     const Eigen::Vector2d &car_pos)
+// {
+//     // logic here
+// }
 
 skidpad_node::skidpad_node() : Node("skidpadNode")
 {
@@ -26,12 +22,12 @@ skidpad_node::skidpad_node() : Node("skidpadNode")
     // perguntar se a problema de abrir o ficheiro aqui
     PATH_POINTS.open("skidpad_path.csv");
 };
-// pontos equidistantes na path spline
+
+// rotate the skidpad_path with the angle of the first seen cones and the car Pos
 void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg)
 {
     auto cones_s = msg->cones;
     int blue_index, yellow_index;
-    // if it returns -1 something went wrong
     double dist_b = 999;
     double dist_y = 999;
     double tmp_distance_blue, tmp_distance_yellow = 10;
@@ -42,7 +38,7 @@ void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg)
     };
 
     // return the index off the nearest cones
-    for (int i = 0; i < cones_s.size(); i++)
+    for (size_t i = 0; i < cones_s.size(); i++)
     {
         if (cones_s[i].BLUE == 2)
         {
@@ -56,7 +52,7 @@ void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg)
         else if (cones_s[i].YELLOW == 1)
         {
             tmp_distance_yellow = distance(cones_s[i].position.x, cones_s[i].position.y, car_pos.first, car_pos.second);
-            if (tmp_distance_yellow < dist_b)
+            if (tmp_distance_yellow < dist_y)
             {
                 dist_y = tmp_distance_yellow;
                 yellow_index = i;
@@ -76,8 +72,8 @@ void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg)
 
     double cos = std::cos(rotation);
     double sin = std::sin(rotation);
-    // rodar o path inteiro
 
+    //create a new path with the rotation aplied
     std::ofstream tmp_file("skidpad_path_rotated.csv");
     std::string line;
     while (std::getline(PATH_POINTS, line))
@@ -99,6 +95,7 @@ void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg)
     tmp_file.close();
 }
 
+//Sends the 20m a head in points witha  distance in betwen of 0.5m
 void skidpad_node::points_sender()
 {
     double target_distance = 0.5;
@@ -188,6 +185,8 @@ void skidpad_node::coneArrayCallback(const lart_msgs::msg::ConeArray::SharedPtr 
 {
     int cone_count = msg->cones.size();
     RCLCPP_INFO(this->get_logger(), "Recive %d cones", cone_count);
+
+    RCLCPP_INFO(this->get_logger(), "Trying to localize the car");
     if (!(car_localized))
     {
         localize_car(msg);
@@ -195,10 +194,8 @@ void skidpad_node::coneArrayCallback(const lart_msgs::msg::ConeArray::SharedPtr 
     }
 }
 
-// aqui preciso de usar o Z na posicao?
 void skidpad_node::positionCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
 {
-    // passo isto para variavel global?
     this->car_pos = {msg->pose.position.x, msg->pose.position.y};
     tf2::Quaternion q(
         msg->pose.orientation.x,
@@ -209,7 +206,7 @@ void skidpad_node::positionCallback(const geometry_msgs::msg::PoseStamped::Share
     double roll, pitch, yaw;
     m.getRPY(roll, pitch, yaw);
     this->car_angle = yaw;
-    // verificar se é aqui que tenho de mandar os pontos todos ou n
+
     points_sender();
 }
 
