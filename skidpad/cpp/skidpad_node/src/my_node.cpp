@@ -102,6 +102,7 @@ void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg)
 //Sends the 20m a head in points witha  distance in betwen of 0.5m
 void skidpad_node::points_sender()
 {
+    
     double target_distance = 0.5;
     double added_distance = 0.0;
 
@@ -225,7 +226,11 @@ void skidpad_node::positionCallback(const geometry_msgs::msg::PoseStamped::Share
     m.getRPY(roll, pitch, yaw);
     this->car_angle = yaw;
 
-    points_sender();
+    if(car_localized){
+        points_sender();
+    }else{
+        RCLCPP_INFO(this->get_logger(), "Car is not localized");
+    }
 }
 
 int main(int argc, char *argv[])
