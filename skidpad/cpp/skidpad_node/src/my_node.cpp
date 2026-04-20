@@ -19,8 +19,11 @@ skidpad_node::skidpad_node() : Node("skidpadNode")
     this->position_subscriber = this->create_subscription<geometry_msgs::msg::PoseStamped>("/slam/pose", 10, std::bind(&skidpad_node::positionCallback, this, _1));
 
     RCLCPP_INFO(this->get_logger(), "Trying to open skidpad_path.csv");
-    // perguntar se a problema de abrir o ficheiro aqui
-    PATH_POINTS.open("skidpad_path.csv");
+    while (!PATH_POINTS.is_open())
+    {
+        PATH_POINTS.open("skidpad_path.csv");        
+    }
+    RCLCPP_INFO(this->get_logger(), "skidpad_path.csv is open");
 };
 
 // rotate the skidpad_path with the angle of the first seen cones and the car Pos
@@ -87,6 +90,7 @@ void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg)
 
             double x_rot = (x * cos) - (y * sin);
             double y_rot = (x * sin) - (y * cos);
+            ///RCLCPP_INFO(this->get_logger(), "Valores a escrever, %f %f",x_rot,y_rot);
 
             tmp_file << std::scientific << x_rot << "," << y_rot << std::endl;
         }
@@ -141,8 +145,12 @@ void skidpad_node::points_sender()
             current_point.second = std::stod(y_str);
             double dist = distance(current_point.first, current_point.second,
                                    last_sent_point.first, last_sent_point.second);
+            //RCLCPP_INFO(this->get_logger(), "distance %f",dist);
+
             if (dist >= target_distance)
             {
+                //RCLCPP_INFO(this->get_logger(), "Dentro do if %f",dist);
+
                 geometry_msgs::msg::PoseStamped pose;
                 pose.header.stamp = this->now();
                 pose.header.frame_id = pathSpline_msg.header.frame_id;
@@ -158,20 +166,27 @@ void skidpad_node::points_sender()
                 pose.pose.orientation.z = quaternion.z();
                 pose.pose.orientation.w = quaternion.w();
 
-                /*
-                    path_msg.curvature.append(point[3])
-                    path_msg.distance.append(point[0])
-                */
-
+                //curvatura é o raio da circunferencia tá no rule book
+                pathSpline_msg.curvature.push_back(10.0);
+                pathSpline_msg.distance.push_back(5.0); // hard-coded tenho de mudar
+                
+                
+                //pathSpline_msg.curvature.append(2)
+                //pathSpline_msg.distance.append(20)//distancia do ponto do path ao carro)
+                
+                
                 pathSpline_msg.poses.push_back(pose);
                 path_rviz_msg.poses.push_back(pose);
 
                 added_distance += target_distance;
                 last_sent_point = current_point;
+                RCLCPP_INFO(this->get_logger(), "DISTANCIA SUMADA %f",added_distance);
+
             }
 
             if (added_distance > 20)
             {
+                RCLCPP_INFO(this->get_logger(), "A enviar dados");
                 path_control_pub->publish(pathSpline_msg);
                 path_vis_pub->publish(path_rviz_msg);
                 break;
@@ -184,13 +199,16 @@ void skidpad_node::points_sender()
 void skidpad_node::coneArrayCallback(const lart_msgs::msg::ConeArray::SharedPtr msg)
 {
     int cone_count = msg->cones.size();
-    RCLCPP_INFO(this->get_logger(), "Recive %d cones", cone_count);
+    //RCLCPP_INFO(this->get_logger(), "Recive %d cones", cone_count);
 
-    RCLCPP_INFO(this->get_logger(), "Trying to localize the car");
     if (!(car_localized))
     {
+        RCLCPP_INFO(this->get_logger(), "Trying to localize the car");
         localize_car(msg);
+        PATH_POINTS.close();
+        PATH_POINTS.open("skidpad_path_rotated.csv");//ter cuidado com os comandos
         car_localized = !car_localized;
+        RCLCPP_INFO(this->get_logger(), "Car localized");
     }
 }
 
