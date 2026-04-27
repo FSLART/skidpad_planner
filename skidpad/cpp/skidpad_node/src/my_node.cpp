@@ -82,17 +82,17 @@ void skidpad_node::localize_car(const lart_msgs::msg::ConeArray::SharedPtr msg)
     while (std::getline(PATH_POINTS, line))
     {
         std::stringstream ss(line);
-        std::string x_str, y_str;
-        if (std::getline(ss, x_str, ',') && std::getline(ss, y_str))
+        std::string x_str, y_str, curvature_str;
+        if (std::getline(ss, x_str, ',') && std::getline(ss, y_str, ',') && std::getline(ss,curvature_str))
         {
             double x = std::stod(x_str);
             double y = std::stod(y_str);
-
+            double cur = std::stod(curvature_str);
             double x_rot = (x * cos) - (y * sin);
             double y_rot = (x * sin) - (y * cos);
-            ///RCLCPP_INFO(this->get_logger(), "Valores a escrever, %f %f",x_rot,y_rot);
+            //RCLCPP_INFO(this->get_logger(), "Valores a escrever, %f, %f, %f",x_rot,y_rot,cur);
 
-            tmp_file << std::scientific << x_rot << "," << y_rot << std::endl;
+            tmp_file << std::scientific << x_rot << "," << y_rot << "," << cur << std::endl;
         }
     }
     PATH_POINTS.close();
@@ -121,11 +121,16 @@ void skidpad_node::points_sender()
     {
         return std::sqrt((cone_x - cone_x1) * (cone_x - cone_x1) + (cone_y - cone_y1) * (cone_y - cone_y1));
     };
-
+    
     if (!PATH_POINTS.is_open())
     {
-        PATH_POINTS.open("skidpad_path_rotated.csv");
+        RCLCPP_INFO(this->get_logger(), " Trying to open the skidpad_path_rotated.csv");
+        while (!PATH_POINTS.is_open())
+        {
+            PATH_POINTS.open("skidpad_path_rotated.csv");
+        }
     }
+
     std::string line;
     size_t current_line_in_file = 0;
     while (std::getline(PATH_POINTS, line))
@@ -138,19 +143,19 @@ void skidpad_node::points_sender()
         }
 
         std::stringstream ss(line);
-        std::string x_str, y_str;
+        std::string x_str, y_str, curvature_str;
 
-        if (std::getline(ss, x_str, ',') && std::getline(ss, y_str))
+        if (std::getline(ss, x_str, ',') && std::getline(ss, y_str, ',') && std::getline(ss, curvature_str))
         {
             current_point.first = std::stod(x_str);
             current_point.second = std::stod(y_str);
+            double curvature = std::stod(curvature_str);
             double dist = distance(current_point.first, current_point.second,
                                    last_sent_point.first, last_sent_point.second);
-            //RCLCPP_INFO(this->get_logger(), "distance %f",dist);
 
             if (dist >= target_distance)
             {
-                //RCLCPP_INFO(this->get_logger(), "Dentro do if %f",dist);
+                
 
                 geometry_msgs::msg::PoseStamped pose;
                 pose.header.stamp = this->now();
@@ -167,22 +172,35 @@ void skidpad_node::points_sender()
                 pose.pose.orientation.z = quaternion.z();
                 pose.pose.orientation.w = quaternion.w();
 
-                //curvatura é o raio da circunferencia tá no rule book
-                pathSpline_msg.curvature.push_back(10.0);
-                pathSpline_msg.distance.push_back(5.0); // hard-coded tenho de mudar
+                double d = distance(0,0,current_point.first,current_point.second);
+                pathSpline_msg.curvature.push_back(curvature);
                 
-                
-                //pathSpline_msg.curvature.append(2)
-                //pathSpline_msg.distance.append(20)//distancia do ponto do path ao carro)
-                
-                
+                pathSpline_msg.distance.push_back(d);
+
                 pathSpline_msg.poses.push_back(pose);
                 path_rviz_msg.poses.push_back(pose);
 
                 added_distance += target_distance;
                 last_sent_point = current_point;
-                RCLCPP_INFO(this->get_logger(), "DISTANCIA SUMADA %f",added_distance);
 
+                RCLCPP_INFO(this->get_logger(), 
+                "Novo Ponto Adicionado:\n"
+                "  Distância Total: %.2f\n"
+                "  Posição: [x: %.2f, y: %.2f]\n"
+                "  Orientação (Quat): [x: %.2f, y: %.2f, z: %.2f, w: %.2f]\n"
+                "  Curvatura: %.4f\n"
+                "  Car Angle: %.4f\n"
+                "   distance: %.2f\n",
+                added_distance,
+                pose.pose.position.x, 
+                pose.pose.position.y,
+                pose.pose.orientation.x, 
+                pose.pose.orientation.y, 
+                pose.pose.orientation.z, 
+                pose.pose.orientation.w,
+                curvature,
+                car_angle,
+                d);
             }
 
             if (added_distance > 20)
@@ -199,7 +217,7 @@ void skidpad_node::points_sender()
 
 void skidpad_node::coneArrayCallback(const lart_msgs::msg::ConeArray::SharedPtr msg)
 {
-    int cone_count = msg->cones.size();
+    //int cone_count = msg->cones.size();
     //RCLCPP_INFO(this->get_logger(), "Recive %d cones", cone_count);
 
     if (!(car_localized))
@@ -225,8 +243,7 @@ void skidpad_node::positionCallback(const geometry_msgs::msg::PoseStamped::Share
     double roll, pitch, yaw;
     m.getRPY(roll, pitch, yaw);
     this->car_angle = yaw;
-
-    if(car_localized){
+    if(car_localized && !test){
         points_sender();
     }else{
         RCLCPP_INFO(this->get_logger(), "Car is not localized");

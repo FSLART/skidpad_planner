@@ -18,6 +18,9 @@ class skidpad_node : public rclcpp::Node
     public:
      skidpad_node();
     private:
+        bool test = false;
+
+
         const double distance = 20;
         bool car_localized = false;
         std::ifstream PATH_POINTS;
